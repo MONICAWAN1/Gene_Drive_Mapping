@@ -1,7 +1,0 @@
-/sim_partition_fig: old partition figure comparison with q1=0.8
-/compare_fig: gd and ngd trajectory curves with q1=0.8
-/q0_sim_partition_fig: new partition figure comparison with q1=0.1, q0=0
-/q0_compare_fig: gd and ngd trajectory curves with q1=0.1, q0=0
-/gd_plots: trajectory of final q in gd vs alpha at different m with q1=0.1, q0=0
-/gd_swmaping_table: gd_only swamping table with q2 unstable
-/gd_sim_partition_fig: gd_only partition figures with q2 unstable

@@ -30,7 +30,7 @@ code/analysis/phase_partition
 code/analysis/plot_partition
 
 
-
+__pycache__/*
 *.zip
 *.tar
 venv.tar.gz
@@ -38,5 +38,21 @@ venv.tar.gz
 .DS_Store
 *.sh
 *.sub
+.vscode/*
 
-code/analysis/combine_data.py
+analysis/combine_data.py
+analysis/read_unstable_results.py
+analysis/solve_partition.py
+analysis/plotting_new.py
+scripts/interactive.py
+scripts/map_selection.py
+scripts/pickle_to_txt.py
+gene_swamping/gs_old.py
+scripts/sngd_candidates
+scripts/sngd_heatmap
+scripts/mapping_outputs
+gene_swamping/*
+result/*
+
+
+

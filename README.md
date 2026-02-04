@@ -19,13 +19,15 @@ Helper functions
 
 ## 🧪 Typical Workflow
 
+Run these steps **in order** from the repo root; later steps depend on pickle files produced by earlier ones.
+
 1. **Generate simulation curves**
 
     ```bash
-    python analysis/get_curves.py
+    python analysis/getcurves.py
     ```
 
-    *Inside `get_curves.py` you can change*  
+    *Inside `getcurves.py` you can change*  
     `h` – dominance coefficient  
     `model_type` – which GD/NGD model to run  
     `step` – integration step (e.g. 0.01 or 0.1)
@@ -42,13 +44,13 @@ Helper functions
 3. **Create mapping data**
 
     ```bash
-    python analysis/run_mapping.py <map_function> <h> <gdFile> <-s>
+    python scripts/run_mapping.py <map_function> <h> <gdFile> [-s]
     ```
 
     *Tips*  
     • Example GD results file: `h{currH}_allgdRes001G`  
     • `gdFile` is either `001` or `01`
-    • If called with command `-s`, mapped results are saved
+    • If called with `-s`, mapped results are saved and difference (getdiff) is run
     • Adjust regime conditions & output filenames inside `run_mapping.py`.
 
 4. **Plot results**
@@ -56,6 +58,8 @@ Helper functions
     ```bash
     python scripts/run_plot.py
     ```
+
+If a script reports a **missing pickle file**, it will print the full path and the suggested run order (steps 1–4 above). Generate the required data by running the pipeline from step 1.
 
 ---
 
