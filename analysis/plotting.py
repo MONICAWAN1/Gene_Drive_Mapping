@@ -12,12 +12,11 @@ import sympy as sp
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-# from .stability import get_ngd_stability, compute_lambda
 from models import run_model, wm, haploid_se, haploid
 from pathlib import Path
-from utils import export_legend, euclidean, load_pickle, save_pickle, PICKLE_DIR
+from utils import export_legend, euclidean, load_pickle, save_pickle, PICKLE_DIR, GD_RES_SUBDIR, gd_res_filename
 from .mapping import get_eq
-from .partition import q3_lambda, derivative_q3_lambda
+from .regime import q3_lambda, derivative_q3_lambda, get_stability_table, get_regime
 
 def loadGrad():
     return load_pickle("", "h0.0_hap_gradient_G_fix.pickle")
@@ -72,9 +71,10 @@ def plot_ngd(s, h):
     #     ngd_res = pickle.load(f1)
     # params = {'s': 0.4, 'c': 0.4, 'h': 0.5, 'target_steps': 100, 'q0': 0.1}
     # res = run_model(params)
-    res = wm(s, h, 40000, 0.2)
+    res = wm({'s': s, 'h': h, 'target_steps': 40000, 'q0': 0.2})
     mut = res['q']
-    print(h, mut, res['state'])
+    regime = get_regime("NGD", s, h)
+    print(h, mut, regime)
     # plt.plot(wt, color = 'orange', label = 'wild-type')
     plt.plot(np.arange(0, len(mut)), mut, color = 'blue', label = 'mutant')
     # plt.ylabel('Allele Frequency')
@@ -103,7 +103,7 @@ def plot_gd(ts, tc):
     h = 0.8
     colormaps = ['Greys', 'Reds', 'YlOrBr', 'Oranges', 'PuRd', 'BuPu',
                       'GnBu', 'YlGnBu', 'PuBuGn', 'Greens']
-    gd_result = load_pickle("gd_simulation_results", f"h{h}_allgdres001G.pickle")
+    gd_result = load_pickle(GD_RES_SUBDIR, gd_res_filename(h))
     configs, res = gd_result[0], gd_result[1]
     # ngd_results1 = load_pickle(f"new_allngdres001G_h5.pickle")
     # ngd_results2 = load_pickle(f"new_allngdres001G_h.pickle")
@@ -175,7 +175,7 @@ def derivative_plot(params, gd_configs, fitting_res):
 
         fitting_s = fitting_res[(s, c, h)][0]
         for h in np.arange(0, 1, 0.1):
-            ngd_curve = wm(fitting_s, h, params['target_steps'], params['q0'])['q']
+            ngd_curve = wm({'s': fitting_s, 'h': h, 'target_steps': params['target_steps'], 'q0': params['q0']})['q']
             ngd_d1 = delta_curve(ngd_curve)
             ngd_d2 = delta_curve(ngd_d1)
 
@@ -199,10 +199,9 @@ def getHapseMapDiff(currH):
     Given current h value, plot an Error heatmap for haploid_se vs GD
     Store results as .txt under analysis/mapping_diff_txt/ and as .pickle under mapping_diff/
     '''
-    loadFile_name = f"h{currH}_allgdres001G.pickle"  # decides the density of the dots
-    gd_results = load_pickle("gd_simulation_results", loadFile_name)
+    gd_results = load_pickle(GD_RES_SUBDIR, gd_res_filename(currH))
     gd_configs, gd_res = gd_results[0], gd_results[1]
-    stabilityRes = load_pickle("OLD", f"h{currH}_gametic_stability_res.pickle")
+    stabilityRes = get_stability_table(currH)
 
     # Name output files (txt + pickle)
     is001 = "001" if '001' in loadFile_name else '01'
@@ -257,9 +256,9 @@ def plotMapDiff(currH):
     '''
     plt.rcParams['pdf.fonttype'] = 42  # Ensure text remains text
     plt.rcParams['ps.fonttype'] = 42
-    gd_results = load_pickle("gd_simulation_results", f"h{currH}_allgdres001G.pickle")
+    gd_results = load_pickle(GD_RES_SUBDIR, gd_res_filename(currH))
     gd_configs, gd_res = gd_results[0], gd_results[1]
-    stabilityRes = load_pickle("OLD", f"h{currH}_gametic_stability_res.pickle")
+    stabilityRes = get_stability_table(currH)
     hapseDiffMap = load_pickle("mapping_diff", f"h{currH}_mappingdiff_gdhapse001_fix.pickle")
 
     valid_configs = []
@@ -344,7 +343,7 @@ def plot_error_da(currH):
     # get gd config and then get mapdiff errror
     # Get gd config in fixation
     s_ngd, h_ngd = solve_sngd(s, c, h)
-    solved_curve = wm(s_ngd, h_ngd, 40000, q_init)['q']
+    solved_curve = wm({'s': s_ngd, 'h': h_ngd, 'target_steps': 40000, 'q0': q_init})['q']
     time_solved = np.arange(0, len(solved_curve))
     mse = euclidean(solved_curve, gd_curve)
     plt.figure(figsize=(9, 7))
@@ -367,7 +366,7 @@ def partition():
     # loading
     # with open('pickle/sch_to_s_results.pickle', 'rb') as f:
     #     map_results = pickle.load(f)
-    gd_results = load_pickle("gd_simulation_results", "h05_allgdresG.pickle")
+    gd_results = load_pickle(GD_RES_SUBDIR, gd_res_filename(0.5))
     gd_configs, gd_res = gd_results[0], gd_results[1]
 
     # seffmap, ngdcurves = map_results['map'], map_results['ngC']
@@ -377,15 +376,16 @@ def partition():
     configurations = []
     states = []
     finals = []
-    statemap = {'fix': 2.5, 'loss': 0.5, 'stable': 1.5}
+    statemap = {'fix': 2.5, 'loss': 0.5, 'stable': 1.5, 'unstable': 1.0}
     h = 0.5 # need to change this!
     for s in slist:
         for c in clist:
             configurations.append((s, c))
-            # s_effs.append(seffmap[(s, c, h)][0])
-            # if gd_res[(s,c,h)]['state'] == 'fix': plot_gd(s, c)
-            states.append(statemap[gd_res[(s,c,h)]['state']])
-            finals.append(gd_res[(s,c,h)]['q'][-1])
+            res = gd_res[(s, c, h)]
+            state = get_regime("GD", s, h, c=c)
+            state = 'fix' if state == 'fixation' else (state or 'stable')
+            states.append(statemap.get(state, 1.5))
+            finals.append(res['q'][-1])
 
     print(states)
     s_values = [conf[0] for conf in configurations]
@@ -447,7 +447,7 @@ def plot_mapping(currH):
         else: 
             gridResult = load_pickle("mapping_result", f"h{currH}_hap_grid001_G_fix.pickle")
             sMap_grid, wms_grid = gridResult['map'], gridResult['ngC']
-    gd_results = load_pickle("gd_simulation_results", f"h{currH}_allgdres001G.pickle")
+    gd_results = load_pickle(GD_RES_SUBDIR, gd_res_filename(currH))
 
     gd_configs, gd_res = gd_results[0], gd_results[1]
 
@@ -488,13 +488,13 @@ def plot_mapping(currH):
                 # w_color = cmap(1.*i/len(h_range))
                 w_color0 = '#0e169e'
                 # i = list(sMap_grid_diploid.keys()).index((s, c, h))
-                wm_curve_grid = wm(best_s_grid, best_h_grid, 40000, q_init)['q']
+                wm_curve_grid = wm({'s': best_s_grid, 'h': best_h_grid, 'target_steps': 40000, 'q0': q_init})['q']
                 time1 = np.arange(0, len(wm_curve_grid))
                 plt.plot(time1, wm_curve_grid, marker = 'o', color = w_color0, markersize=2, linestyle = '-', label = f'grid search diploid NGD (s = {best_s_grid:.3f}, h = {best_h_grid:.3f})')
 
                 ### plot analytics
                 s_ngd, h_ngd = solve_sngd(s, c, h)
-                solved_curve = wm(s_ngd, h_ngd, 40000, q_init)['q']
+                solved_curve = wm({'s': s_ngd, 'h': h_ngd, 'target_steps': 40000, 'q0': q_init})['q']
                 time_solved = np.arange(0, len(solved_curve))
                 mse = euclidean(solved_curve, gd_curve)
                 plt.plot(time_solved, solved_curve, color = w_color0, markersize=2, linestyle = '--', label = f'Analytical diploid NGD (s = {s_ngd:.3f}, h = {h_ngd:.3f}), mse={mse:.4f}')
@@ -518,7 +518,7 @@ def plot_mapping(currH):
                     best_s_grad, best_h_grad = sMap_grad[(s, c, h)][0], sMap_grad[(s, c, h)][1]
                     print("BEFORE", best_s_grad, best_h_grad)
                     # best_s_grad, best_h_grad = -1.33, 1
-                    wm_curve_grad = wm(best_s_grad, best_h_grad, 40000, 0.001)['q']
+                    wm_curve_grad = wm({'s': best_s_grad, 'h': best_h_grad, 'target_steps': 40000, 'q0': 0.001})['q']
                     time2 = np.arange(0, len(wm_curve_grad))
                     error = euclidean(gd_res[(s, c, h)]['q'], wm_curve_grad)
                     print('ERROR', error)
@@ -907,7 +907,7 @@ def plot_qmaps(currH):
             gd_param = {'s': gd_s, 'h':gd_h, 'c': gd_c, 'q0': q_init, 'target_steps': 40000}
             q_init, ngd_s, ngd_h = data_points
             gd_curve = run_model(gd_param)['q'][:201]
-            ngd_curve = wm(ngd_s, ngd_h, 40000, q_init)['q'][:201]
+            ngd_curve = wm({'s': ngd_s, 'h': ngd_h, 'target_steps': 40000, 'q0': q_init})['q'][:201]
     
             color1 = cmap1(norm(q_init))
             # color2 = cmap2(norm(q_init))
@@ -929,8 +929,8 @@ def plot_qmaps(currH):
         for q_init in q_values:
             gd_param['q0'] = q_init
             gd_curve = run_model(gd_param)['q'][:steps]
-            ngd_curve = wm(ngd_s, ngd_h, 40000, q_init)['q'][:steps]
-            solved_curve = wm(solved_s, solved_h, 40000, q_init)['q'][:steps]
+            ngd_curve = wm({'s': ngd_s, 'h': ngd_h, 'target_steps': 40000, 'q0': q_init})['q'][:steps]
+            solved_curve = wm({'s': solved_s, 'h': solved_h, 'target_steps': 40000, 'q0': q_init})['q'][:steps]
             color1 = cmap1(norm(q_init))
             q_init = round(q_init, 4)
             totalmapdiff += euclidean(ngd_curve, gd_curve)
@@ -948,7 +948,7 @@ def plot_qmaps(currH):
     eq_gdcurve = run_model(gd_param)['q']
     print("eq_gdcurve", eq_gdcurve)
     eq_gdcurve = np.concatenate([eq_gdcurve, np.full(steps - len(eq_gdcurve), eq_gdcurve[-1])])
-    eq_ngdcurve = wm(ngd_s, ngd_h, 40000, eq_q)['q']
+    eq_ngdcurve = wm({'s': ngd_s, 'h': ngd_h, 'target_steps': 40000, 'q0': eq_q})['q']
     totaldiff = totalsolvediff if plot_solve else totalmapdiff
     plt.plot(np.arange(0, len(eq_gdcurve)), eq_gdcurve, marker = 'o', linestyle = '-', markersize=3, color = 'red', label = f"GD q_eq={eq_q:.4f}, s = {current_gd[0]}, c = {current_gd[1]}, h = {current_gd[2]}")
     # plt.plot(np.arange(0, len(eq_ngdcurve)), eq_ngdcurve, linestyle = '--', markersize=3, color = 'red', label = f"NGD q_init={eq_q}, s = {ngd_s}, h = {ngd_h}")
@@ -1011,7 +1011,7 @@ def plot_fixation_res(currH):
             print("+++++current H", currH)
         
             # get grid mapp results 
-            gd_results = load_pickle("gd_simulation_results", f"h{currH}_allgdres{gdFile}G.pickle")
+            gd_results = load_pickle(GD_RES_SUBDIR, gd_res_filename(currH, gdFile))
             # gradResult = load_pickle(f"h{currH}_hap_gradient_G_fix.pickle") # all gradient results
             if diploid: 
                 if state == "unstable":
@@ -1032,7 +1032,7 @@ def plot_fixation_res(currH):
             he_vals = []
 
             h_ngd_vals = []
-            stability = load_pickle("OLD", f"h{currH}_gametic_stability_res.pickle")
+            stability = get_stability_table(currH)
 
             # Convert all keys in the stability dictionary to upper case
             # if math.isclose(currH,0.6): 
@@ -1302,7 +1302,7 @@ def test_mapping_trajectory(s_gd, c_gd, h_gd,
     traj_gd = run_model(gd_params)['q']
 
     # NGD trajectory
-    traj_ngd = wm(s_ngd, h_ngd, target_steps, q0)['q']
+    traj_ngd = wm({'s': s_ngd, 'h': h_ngd, 'target_steps': target_steps, 'q0': q0})['q']
 
     # --- 4) Plot comparison -----------------------------------------
     plt.figure(figsize=(8,5))
@@ -1339,9 +1339,9 @@ def plot_fixation_surface(currH):
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
 
-    gd_results = load_pickle("gd_simulation_results", f"h{currH}_allgdres001G.pickle")
+    gd_results = load_pickle(GD_RES_SUBDIR, gd_res_filename(currH))
     gridResult_diploid = load_pickle("", f"h{currH}_grid_fix001_G_unstable.pickle")
-    stability = load_pickle("", f"h{currH}_gametic_stability_res.pickle")
+    stability = get_stability_table(currH)
 
     gd_configs, _ = gd_results
     sMap_grid_diploid = gridResult_diploid['map']
@@ -1357,7 +1357,7 @@ def plot_fixation_surface(currH):
         if not math.isclose(h_gd, float(currH)):
             continue
 
-        if ((s_gd, c_gd, h_gd), 1.0) not in stability['Fixation']:
+        if ((s_gd, c_gd, h_gd), 1.0) not in stability["fixation"]:
             continue
 
         if (s_gd, c_gd, h_gd) not in sMap_grid_diploid:
@@ -1511,7 +1511,7 @@ def plot_sngd_all(currH):
     """
     plot the change in sngd with q_init for different configurations
     """
-    gd_results = load_pickle("gd_simulation_results", f"h{currH}_allgdres001G.pickle")
+    gd_results = load_pickle(GD_RES_SUBDIR, gd_res_filename(currH))
     gridResult = load_pickle("", f"h{currH}_grid_fix001_G.pickle")
 
     gd_configs, _ = gd_results[0], gd_results[1]
@@ -1546,48 +1546,12 @@ def plot_sngd_all(currH):
 
 ### 10.22 Latest version of plotting unstable/stable mapping error figures #################################
 def find_state_analytic(model, sval, hval, cval=0.0):
-    statemap = {
-        (0, 0, 1, 0): "fixation",
-        (0, 0, 0, 1): "loss",
-        (1, 0, 0, 0): "stable",
-        (0, 1, 0, 0): "unstable",
-    }
-    q = sp.Symbol('q')
-    s = sp.Symbol('s')
-    h = sp.Symbol('h')
-    c = sp.Symbol('c')
-
-    expr_ngd = (q**2 * (1-s) + q * (1-q) * (1 - h*s)) / (q**2 * (1-s) + 2 * q * (1-q) * (1 - h*s) + (1-q)**2) 
-    expr_gd = (q**2 * (1-s) + q * (1-q) * (1+c) * (1 - h*s)) / (q**2 * (1-s) + 2 * q * (1-q) * (1 - h*s) + (1-q)**2)
-
-    ngd_q1, ngd_q2, ngd_q3 = sp.solvers.solve(expr_ngd - q, q)
-    gd_q1, gd_q2, gd_q3 = sp.solvers.solve(expr_gd - q, q)
-
-    # find dq and evaluate at q3, if > 1 then unstable 
-    expr_ngd_derivative = sp.simplify(sp.diff(expr_ngd, q))
-    expr_gd_derivative = sp.simplify(sp.diff(expr_gd, q))
-    expr_ngd_0_5_lambda = sp.lambdify((s, c, h), expr_ngd.subs(q, 0.5), 'numpy')
-    expr_gd_0_5_lambda = sp.lambdify((s, c, h), expr_gd.subs(q, 0.5), 'numpy')
-    # expr_gd_derivative_q3 = sp.simplify(expr_gd_derivative)
-
-    ngd_q3_lambda = sp.lambdify((s, h), ngd_q3, 'numpy')
-    gd_q3_lambda = sp.lambdify((s, c, h), gd_q3, 'numpy')
-    ngd_dq_lambda = sp.lambdify((s, h, q), expr_ngd_derivative, 'numpy')
-    gd_dq_lambda = sp.lambdify((s, c, h, q), expr_gd_derivative, 'numpy')
-
-    if model == 'ngd':
-        q3= ngd_q3_lambda(sval, hval)
-        dq3 = ngd_dq_lambda(sval, hval, q3),
-        dq05 = expr_ngd_0_5_lambda(sval, hval)
-    else: 
-        q3 = gd_q3_lambda(sval, cval, hval)
-        dq3 = gd_dq_lambda(sval, cval, hval, q3)
-        dq05 = expr_gd_0_5_lambda(sval, cval, hval)
-    stable = q3 > 0.0 and q3 < 1.0 and dq3 < 1.0
-    unstable = q3 > 0.0 and q3 < 1.0 and dq3 > 1.0
-    fixation = (q3 > 1.0 or q3 < 0.0) and dq05 > 0.5
-    loss = (q3 < 0.0 or q3 > 1.0) and dq05 < 0.5
-    return statemap[(stable, unstable, fixation, loss)]
+    """Delegate to regime.get_regime_and_eq; returns regime string (fixation, loss, stable, unstable)."""
+    from .regime import get_regime_and_eq
+    model_key = "GD" if model.lower() == "gd" else "NGD"
+    c = cval if model_key == "GD" else None
+    r, _ = get_regime_and_eq(model_key, sval, hval, c=c)
+    return r if r else ""
 
 ### NEWEST PLOTTING FUNCTION FOR HEATMAP OF UNSTABLE MAPPING ERROR
 ### Work for unstable, stable or loss, analytic or grid search result
@@ -1599,7 +1563,7 @@ def get_unstable_diff(currH, state="unstable", ana="grid"):
     '''
     plt.rcParams['pdf.fonttype'] = 42
     plt.rcParams['ps.fonttype'] = 42
-    gd_results = load_pickle("gd_simulation_results", f"h{currH}_allgdres001G.pickle")
+    gd_results = load_pickle(GD_RES_SUBDIR, gd_res_filename(currH))
     # gradResult = load_pickle(f"h{currH}_hap_gradient_G_fix.pickle") # all gradient results
     # if ana == "grid":
     if state == 'loss':
@@ -1614,7 +1578,7 @@ def get_unstable_diff(currH, state="unstable", ana="grid"):
 
     # sMap_grid, wms_grid = gridResult['map'], gridResult['ngC']
 
-    stabilityRes = load_pickle("OLD", f"h{currH}_gametic_stability_res.pickle")
+    stabilityRes = get_stability_table(currH)
     # Print the contents of stabilityRes
     print("Contents of stabilityRes:", stabilityRes.keys())
 
@@ -1697,7 +1661,7 @@ def get_unstable_diff(currH, state="unstable", ana="grid"):
             gd_params = {'s': s_gd, 'c': c_gd, 'h': h_gd, 'q0':q_init,'target_steps': 40000}
             gd_curve=run_model(gd_params)['q']
             
-            mapped_curve = wm(mapped_s, mapped_h, 40000, q_init)['q']
+            mapped_curve = wm({'s': mapped_s, 'h': mapped_h, 'target_steps': 40000, 'q0': q_init})['q']
 
             map_diff = euclidean(mapped_curve, gd_curve)
             # ana_diff = euclidean(analytical_curve, gd_curve)

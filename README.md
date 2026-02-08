@@ -5,7 +5,7 @@ Repository for simulation models
 ## Top-Level Directories
 
 ### [`analysis/`](/analysis)
-Files that get simulation results, run stability analysis, mapping, and plotting figures
+Files that get simulation results, run regime partition and stability helpers (`regime.py`), mapping, and plotting figures
 
 ### [`models/`](/models)
 Gene drive and non-gene-drive models
@@ -32,14 +32,15 @@ Run these steps **in order** from the repo root; later steps depend on pickle fi
     `model_type` – which GD/NGD model to run  
     `step` – integration step (e.g. 0.01 or 0.1)
 
-2. **Run stability analysis**
+2. **Precompute analytic regime partition (optional)**
+
+    Regime data (stable / unstable / fixation / loss) is computed on demand from `analysis/regime.py`. To cache it as pickle files for faster runs:
 
     ```bash
-    python analysis/stability.py
+    python -m analysis.regime --model GD
     ```
 
-    Edit `main()` (or the `runall` helper) to set the parameter grid for  
-    `s`, `c`, `h` → selection, conversion rate, dominance.
+    Use `--model NGD` for the non–gene-drive partition. The grid matches uses `s`, `c` in range `[0, 1.01]`with step 0.01; `h` in `[0, 1.05]` step 0.05 for GD.
 
 3. **Create mapping data**
 

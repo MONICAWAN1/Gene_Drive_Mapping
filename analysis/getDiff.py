@@ -4,7 +4,8 @@ import pickle
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from models import wm
-from utils import load_pickle, save_pickle, euclidean
+from utils import load_pickle, save_pickle, euclidean, GD_RES_SUBDIR, gd_res_filename
+from .regime import get_stability_table
 
 def get_eq(params):
     s, c, h = params['config']
@@ -42,9 +43,9 @@ def getdiff(currH, mapfunction, gdFile):
     f_out.write(f"Gene Drive Configuration\t\t{mapfunction} result\t\tMSE error compared to Gene Drive\n")
 
     # load gd curves and stability results
-    gd_results = load_pickle("gd_simulation_results", f"h{currH}_allgdres{gdFile}G.pickle")
+    gd_results = load_pickle(GD_RES_SUBDIR, gd_res_filename(currH, gdFile))
     gd_configs, gd_res = gd_results[0], gd_results[1]
-    stabilityRes = load_pickle("OLD", f"h{currH}_gametic_stability_res.pickle")
+    stabilityRes = get_stability_table(currH)
 
     savedPickle_subdir = "mapping_diff"
     savedPickle_name = f"h{currH}_mappingdiff_{mapfunction}_{state}{gdFile}_G.pickle"
@@ -79,7 +80,7 @@ def getdiff(currH, mapfunction, gdFile):
                 ngd_curve = haploid(params)['q']
             else:
                 ngd_s, ngd_h = sMap_grid[(s, c, h)][0], sMap_grid[(s, c, h)][1]
-                ngd_curve = wm(ngd_s, ngd_h, 40000, 0.001)['q']
+                ngd_curve = wm({'s': ngd_s, 'h': ngd_h, 'target_steps': 40000, 'q0': 0.001})['q']
             
             # paramSe = {'s':s, 'c':c, 'n': 500, 'h':h, 'target_steps': 40000, 'q0': 0.001}
             # ngd_curve = haploid_se(paramSe)['q']
