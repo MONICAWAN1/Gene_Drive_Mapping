@@ -30,6 +30,7 @@ venv.tar.gz
 *.sub
 .vscode/*
 
+scripts/combine_ngd.py
 analysis/combine_data.py
 analysis/solve_partition.py
 analysis/getDiff.py
