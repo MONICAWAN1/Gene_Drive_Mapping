@@ -197,7 +197,10 @@ def get_regime_and_eq(model, s, h, c=None):
 
 
 def run_analytic_partition(model):
-    """Precompute and save partition for GD (per h) or NGD. CLI: python -m analysis.regime --model GD."""
+    """
+    Precompute and save partition for GD (per h) or NGD. 
+    CLI: python -m analysis.regime --model GD.
+    """
     h_grid = np.arange(0.0, 1.05, 0.05)
     if model == "GD":
         for h_val in h_grid:
@@ -311,6 +314,71 @@ def get_eq_ngd(s, h):
     if eq < 0 or eq > 1 or math.isclose(eq, 0.0) or math.isclose(eq, 1.0):
         return None
     return [eq]
+
+
+def _gd_next_q(q, s, c, h):
+    num = q * q * (1 - s) + q * (1 - q) * (1 + c) * (1 - h * s)
+    den = q * q * (1 - s) + 2 * q * (1 - q) * (1 - h * s) + (1 - q) * (1 - q)
+    if math.isclose(den, 0.0):
+        return float("nan")
+    return num / den
+
+
+def _se_equivalent(s_gd, c_gd, h_gd):
+    return h_gd * s_gd - c_gd + c_gd * h_gd * s_gd
+
+
+def solve_sngd(s_gd, c_gd, h_gd, h_ngd=None, q=None):
+    """
+    Analytic GD->NGD mapping helper.
+
+    - solve_sngd(s_gd, c_gd, h_gd) -> (s_ngd, h_ngd)
+    - solve_sngd(s_gd, c_gd, h_gd, h_ngd=..., q=...) -> s_ngd at a fixed (h_ngd, q)
+      by matching one-step update q(t+1) between GD and NGD at q(t)=q.
+    """
+    s_gd = float(s_gd)
+    c_gd = float(c_gd)
+    h_gd = float(h_gd)
+
+    if h_ngd is not None and q is not None:
+        h_ngd = float(h_ngd)
+        q = float(q)
+        tgt = _gd_next_q(q, s_gd, c_gd, h_gd)
+        if not math.isfinite(tgt):
+            return float("nan")
+        a = q * q + h_ngd * q * (1 - q)
+        b = q * q + 2 * h_ngd * q * (1 - q)
+        denom = tgt * b - a
+        if math.isclose(denom, 0.0):
+            return float("nan")
+        return (tgt - q) / denom
+
+    regime, eq = get_regime_and_eq("GD", s_gd, h_gd, c=c_gd)
+    se = _se_equivalent(s_gd, c_gd, h_gd)
+    if regime in ("stable", "unstable") and eq is not None and not math.isclose(2 * eq - 1, 0.0):
+        h_ngd = eq / (2 * eq - 1)
+    else:
+        h_ngd = h_gd if not math.isclose(h_gd, 0.0) else 1.0
+    if math.isclose(h_ngd, 0.0):
+        return (0.0, h_ngd)
+    return (se / h_ngd, h_ngd)
+
+
+def solve_sngd_unstable(s_gd, c_gd, h_gd):
+    """
+    Stable/unstable mapping using GD interior equilibrium to match NGD h.
+    """
+    s_gd = float(s_gd)
+    c_gd = float(c_gd)
+    h_gd = float(h_gd)
+    regime, eq = get_regime_and_eq("GD", s_gd, h_gd, c=c_gd)
+    if regime not in ("stable", "unstable") or eq is None or math.isclose(2 * eq - 1, 0.0):
+        return solve_sngd(s_gd, c_gd, h_gd)
+    h_ngd = eq / (2 * eq - 1)
+    se = _se_equivalent(s_gd, c_gd, h_gd)
+    if math.isclose(h_ngd, 0.0):
+        return (0.0, h_ngd)
+    return (se / h_ngd, h_ngd)
 
 
 if __name__ == "__main__":

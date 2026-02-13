@@ -37,7 +37,7 @@ def getcurves(params, model, h_gd=None):
     Pickle dump NGD results: {(s,h): curve} or GD results [configlist, gd_res].
     For GD, h_gd is the single h value to run (required for GD); params['h'] must match when model is GD.
     '''
-    minVal, maxVal, step = 0.01, 5.0, 0.01
+    minVal, maxVal, step = 0.01, 5.0, 0.05
     s_range = np.arange(minVal, maxVal, step)
     hmax = 5.0
     h_range = np.arange(0, hmax, step)
@@ -85,7 +85,7 @@ def main():
         help="haploid: run gethaploid (NGD); diploid: run getcurves with --model")
     parser.add_argument("--h", type=float, default=None, dest="h",
         help="For diploid GD only: single h value. Omit to run GD simulation for all h (0, 0.1, ..., 1.0). Ignored for NGD/haploid.")
-    parser.add_argument("--target_steps", type=int, default=40000,
+    parser.add_argument("--target_steps", type=int, default=2000,
         help="Maximum simulation steps (default: 40000)")
     parser.add_argument("--q0", type=float, default=0.001,
         help="Initial allele frequency (default: 0.001)")

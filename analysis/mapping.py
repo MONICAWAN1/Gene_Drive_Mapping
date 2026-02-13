@@ -8,14 +8,13 @@ import sympy as sp
 import concurrent.futures
 from itertools import repeat
 
-from .regime import derivative, compute_lambda_gd, get_stability_table, get_regime, get_regime_and_eq
+from .regime import derivative, compute_lambda_gd, get_stability_table, get_regime, get_regime_and_eq, solve_sngd, solve_sngd_unstable
 # from .plotting import plot_lambda_curve
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from utils import load_pickle, save_pickle, euclidean, write_mapping_csv, GD_RES_SUBDIR, NGD_RES_SUBDIR, HAPLOID_RES_SUBDIR, gd_res_filename, ngd_res_filename, haploid_res_filename
 from models import haploid, run_model, wm, haploid_se
-from .solve import solve_sngd, solve_sngd_unstable
 
 def get_eq(params):
     s, c, h = params['s'], params['c'], params['h']
@@ -122,6 +121,7 @@ def hap_grid_mapping(h_gd, s_gd=None, c_gd=None, gd_file="001", save=True, targe
     """
     params = {"h": h_gd, "target_steps": target_steps, "q0": q0}
     gd_results = loadGres(h_gd, gd_file)
+    print("✅ Gene drive trajectory file loaded in haploid grid mapping")
     stability_res = loadStability(h_gd)
     configs = _configs_for_h(gd_results, stability_res, h_gd, "fixation", s_gd, c_gd)
     gd_configs, gd_res = gd_results[0], gd_results[1]
@@ -154,6 +154,7 @@ def hap_analytic_mapping(h_gd, s_gd=None, c_gd=None, gd_file="001", save=True, t
     """
     params = {"h": h_gd, "target_steps": target_steps, "q0": q0}
     gd_results = loadGres(h_gd, gd_file)
+    print("✅ Gene drive trajectory file loaded in haploid analytic mapping")
     stability_res = loadStability(h_gd)
     configs = _configs_for_h(gd_results, stability_res, h_gd, "fixation", s_gd, c_gd)
     gd_configs, gd_res = gd_results[0], gd_results[1]
@@ -252,6 +253,7 @@ def diploid_grid_mapping(regime, h_gd, s_gd=None, c_gd=None, gd_file="001", save
     """
     params = {"h": h_gd, "target_steps": target_steps, "q0": q0, "n": 500}
     gd_results = loadGres(h_gd, gd_file)
+    print("✅ Gene drive trajectory file loaded in diploid grid mapping")
     stability_res = loadStability(h_gd)
     gd_configs, gd_res = gd_results[0], gd_results[1]
     configs = _configs_for_h(gd_results, stability_res, h_gd, regime, s_gd, c_gd)
@@ -353,6 +355,7 @@ def analytic_mapping(regime, h_gd, s_gd=None, c_gd=None, gd_file="001", save=Tru
     solve_ngd_fix (solve_sngd) for fixation. Returns same row format as diploid_grid_mapping.
     """
     gd_results = loadGres(h_gd, gd_file)
+    print("✅ Gene drive trajectory file loaded in diploid analytic mapping")
     stability_res = loadStability(h_gd)
     configs = _configs_for_h(gd_results, stability_res, h_gd, regime, s_gd, c_gd)
     gd_configs, gd_res = gd_results[0], gd_results[1]
@@ -377,4 +380,3 @@ def analytic_mapping(regime, h_gd, s_gd=None, c_gd=None, gd_file="001", save=Tru
     if save and rows:
         write_mapping_csv("analytic", "diploid", regime, h_gd, s_gd, c_gd, rows)
     return rows
-

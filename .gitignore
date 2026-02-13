@@ -3,10 +3,6 @@
 *.pickle
 *.png
 
-# Ignore a specific output directory
-/code/outputs/
-/code/pickle/
-
 # Ignore temporary files
 *.tmp
 *.log
@@ -21,13 +17,7 @@ __pycache__/
 /venv/
 
 # Ignore large pickle files
-code/pickle/allgdres001.pickle
-code/pickle/allngdres.pickle
-code/OSG_submit/
-code/analysis/stability_res
-code/analysis/mapping_diff_txt
-code/analysis/phase_partition
-code/analysis/plot_partition
+pickle/*
 
 
 __pycache__/*
@@ -41,8 +31,8 @@ venv.tar.gz
 .vscode/*
 
 analysis/combine_data.py
-analysis/read_unstable_results.py
 analysis/solve_partition.py
+analysis/getDiff.py
 analysis/plotting_new.py
 scripts/interactive.py
 scripts/map_selection.py
@@ -51,6 +41,7 @@ gene_swamping/gs_old.py
 scripts/sngd_candidates
 scripts/sngd_heatmap
 scripts/mapping_outputs
+analysis/getDiff.py
 gene_swamping/*
 result/*
 

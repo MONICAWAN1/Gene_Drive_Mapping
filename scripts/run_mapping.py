@@ -68,11 +68,13 @@ def main():
 
     if args.genotype == "haploid":
         if args.method == "grid":
+            print("Running haploid grid-search mapping")
             rows = hap_grid_mapping(h_gd, s_gd=s_gd, c_gd=c_gd, gd_file=gd_file, save=save)
         else:
             rows = hap_analytic_mapping(h_gd, s_gd=s_gd, c_gd=c_gd, gd_file=gd_file, save=save)
     else:
         if args.method == "grid":
+            print("Running diploid grid-search mapping")
             rows = diploid_grid_mapping(regime, h_gd, s_gd=s_gd, c_gd=c_gd, gd_file=gd_file, save=save)
         else:
             rows = analytic_mapping(regime, h_gd, s_gd=s_gd, c_gd=c_gd, gd_file=gd_file, save=save)

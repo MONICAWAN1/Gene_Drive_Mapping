@@ -34,8 +34,10 @@ def stability_filename(h_val):
 
 # Default hint when no help string is provided (pipeline order from README)
 _DEFAULT_PICKLE_HELP = (
-    "1) python analysis/getcurves.py  2) python -m analysis/regime --model GD  "
-    "3) python scripts/run_mapping.py <map_function> <h> <gdFile> [-s]  4) python scripts/run_plot.py"
+    "1) python analysis/getcurves.py --model —-genotype --h --target_steps --q0" 
+    "⬆️ Note: You need to run this command at least once for both GD and NGD model"
+    "2) python -m analysis/regime --model GD"
+    "3) python scripts/run_mapping.py with the required flags"
 )
 
 

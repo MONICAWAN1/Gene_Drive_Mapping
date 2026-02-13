@@ -10,9 +10,6 @@ def euclidean(ngd, gd):
     q0_m = gd
     if len(q0) < len(q0_m):
         q0 = np.append(q0, [q0[-1]] * (len(q0_m) - len(q0)))
-    # else:
-    #     q0_m = np.append(q0_m, [q0_m[-1]] * (len(q0) - len(q0_m)))
-
     for i in range(len(q0_m)):
         diff1 += (q0[i]-q0_m[i])**2
     return diff1/len(q0_m)
