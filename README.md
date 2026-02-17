@@ -18,6 +18,9 @@ CLI entry points for mapping and plotting (`run_mapping.py`, `run_plot.py`).
 ### [`utils/`](/utils)
 Shared helpers for file I/O, path conventions, and numeric utilities.
 
+### [`gene_swamping/`](/gene_swamping)
+Application scenario built on top of the GD->NGD mapping pipeline. It compares gene swamping partitions between GD and mapped NGD on the `(m, alpha/beta)` space for fixed `(s, c, h)` settings.
+
 ## 🧪 Typical Workflow
 
 Run these steps in order from repo root.
@@ -122,6 +125,31 @@ Notes:
 
 - **Comparison metrics**
   - Mapping quality is tracked by trajectory `MSE` and consumed directly by plotting heatmaps.
+
+---
+
+## 🌊 Gene Swamping Application
+
+The `gene_swamping/` folder demonstrates one application of the mapping scheme implemented in `analysis/` and `scripts/`: for a fixed `(s, c, h)` setup and scenario label (`t1/t2/t3`), it compares GD and mapped NGD gene swamping regions over a 2D parameter grid (`m` vs `alpha` or `beta`) and visualizes partition overlap.
+
+Run:
+
+```bash
+python3 gene_swamping/simulation.py --traj False --analytic True --case t1
+```
+
+Flags:
+- `--traj`:
+  - `True`: plot GD vs mapped NGD trajectories for one parameter set.
+  - `False`: generate/load swamping table and plot GD-vs-NGD partition overlap.
+- `--analytic`:
+  - `True`: use analytic mapping.
+  - `False`: use grid-search mapping.
+- `--case`:
+  - scenario label `t1`, `t2`, or `t3` (as defined in the paper/scenario setup).
+  - internally controls whether sweep varies `alpha` (`t1/t3`) or `beta` (`t2`).
+
+User can modify the parameter setting in the `main()` function of `simulation.py` directly to specify the parameter setup such as `(s, c, h)`, `m`, `alpha`, and `beta` values. 
 
 ---
 

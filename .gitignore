@@ -43,7 +43,6 @@ scripts/sngd_candidates
 scripts/sngd_heatmap
 scripts/mapping_outputs
 analysis/getDiff.py
-gene_swamping/*
 result/*
 
 
